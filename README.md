@@ -10,7 +10,7 @@
 [![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel)](https://vercel.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-### 🔗 [**Live Demo**](https://your-deployment.vercel.app) &nbsp;·&nbsp; built with retrieval-augmented generation (RAG)
+### 🔗 [**Live Demo**](https://chat-with-docs-iota.vercel.app) &nbsp;·&nbsp; built with retrieval-augmented generation (RAG)
 
 </div>
 
@@ -27,7 +27,7 @@ DocChat is a production-style **RAG (Retrieval-Augmented Generation)** applicati
 - 🔒 **Per-session isolation** — each visitor's documents live in their own vector namespace.
 - 💸 **Runs on $0** — Google Gemini's free tier + free hosting tiers. No credit card required.
 
-> 🎬 **[Try the live demo →](https://your-deployment.vercel.app)** — upload a document and ask it anything.
+> 🎬 **[Try the live demo →](https://chat-with-docs-iota.vercel.app)** — upload a document and ask it anything.
 
 <!-- Screenshot added after deployment: ![DocChat — chat with citations](docs/screenshot-chat.png) -->
 
