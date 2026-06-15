@@ -187,3 +187,21 @@ body {
 .markdown th {
   background: var(--surface-2);
 }
+
+/* Highlighted passage inside the PDF viewer's text layer */
+.pdf-hl {
+  background: rgba(250, 204, 21, 0.45);
+  color: transparent;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* react-pdf renders pages centered; keep them tidy on dark background */
+.react-pdf__Page {
+  margin: 0 auto;
+  background: transparent !important;
+}
+.react-pdf__Page__canvas {
+  border-radius: 6px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}

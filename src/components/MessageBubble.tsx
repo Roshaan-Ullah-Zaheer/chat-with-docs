@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { Sparkles, User, CornerDownRight } from 'lucide-react';
 import { Markdown } from './Markdown';
 import { Sources } from './Sources';
 import { StatusSteps } from './StatusSteps';
+import { useViewer } from './ViewerContext';
 import type { ChatUIMessage, ChatStatus, Source } from '@/lib/types';
 
 export function MessageBubble({
@@ -14,6 +16,8 @@ export function MessageBubble({
   onSend: (text: string) => void;
 }) {
   const isUser = message.role === 'user';
+  const [activeRef, setActiveRef] = useState<number | null>(null);
+  const { openSource } = useViewer();
 
   const text = message.parts
     .filter((p) => p.type === 'text')
@@ -32,6 +36,13 @@ export function MessageBubble({
   const followups = message.parts
     .filter((p) => p.type === 'data-followups')
     .flatMap((p) => (p as { data: string[] }).data ?? []);
+
+  function handleCite(ref: number) {
+    const src = sources.find((s) => s.ref === ref);
+    if (!src) return;
+    setActiveRef(ref);
+    openSource(src);
+  }
 
   return (
     <div className={`animate-in flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
@@ -54,14 +65,16 @@ export function MessageBubble({
           {isUser ? (
             <p className="whitespace-pre-wrap text-[15px] leading-relaxed">{text}</p>
           ) : text ? (
-            <Markdown>{text}</Markdown>
+            <Markdown sources={sources} onCite={handleCite}>
+              {text}
+            </Markdown>
           ) : status ? (
             <StatusSteps status={status} />
           ) : (
             <ThinkingDots />
           )}
 
-          {!isUser && <Sources sources={sources} />}
+          {!isUser && <Sources sources={sources} activeRef={activeRef} />}
         </div>
 
         {!isUser && followups.length > 0 && (
