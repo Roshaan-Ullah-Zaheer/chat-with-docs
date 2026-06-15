@@ -27,8 +27,10 @@ DocChat is a production-style **RAG (Retrieval-Augmented Generation)** applicati
 - 🔒 **Per-session isolation** — each visitor's documents live in their own vector namespace.
 - 💸 **Runs on $0** — Google Gemini's free tier + free hosting tiers. No credit card required.
 
-<!-- Screenshots are generated from the running app. -->
-![DocChat — chat with citations](docs/screenshot-chat.png)
+> 🎬 **[Try the live demo →](https://your-deployment.vercel.app)** — upload a document and ask it anything.
+
+<!-- Screenshot added after deployment: ![DocChat — chat with citations](docs/screenshot-chat.png) -->
+
 
 ---
 
