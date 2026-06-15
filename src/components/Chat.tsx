@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { ArrowUp, Square, FileText, MessagesSquare } from 'lucide-react';
+import { ArrowUp, Square, FileText, MessagesSquare, Sparkles, Lightbulb } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
 import type { ChatUIMessage } from '@/lib/types';
 
@@ -18,6 +18,8 @@ export function Chat({
   onSend,
   onStop,
   error,
+  summary,
+  starterQuestions,
 }: {
   messages: ChatUIMessage[];
   busy: boolean;
@@ -25,6 +27,8 @@ export function Chat({
   onSend: (text: string) => void;
   onStop: () => void;
   error: string | null;
+  summary?: string;
+  starterQuestions?: string[];
 }) {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -54,11 +58,16 @@ export function Chat({
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-3xl px-4 py-6">
           {messages.length === 0 ? (
-            <EmptyState hasDocs={hasDocs} onPick={submit} />
+            <EmptyState
+              hasDocs={hasDocs}
+              onPick={submit}
+              summary={summary}
+              starterQuestions={starterQuestions}
+            />
           ) : (
             <div className="space-y-6">
               {messages.map((m) => (
-                <MessageBubble key={m.id} message={m} />
+                <MessageBubble key={m.id} message={m} onSend={submit} />
               ))}
             </div>
           )}
@@ -117,7 +126,19 @@ export function Chat({
   );
 }
 
-function EmptyState({ hasDocs, onPick }: { hasDocs: boolean; onPick: (text: string) => void }) {
+function EmptyState({
+  hasDocs,
+  onPick,
+  summary,
+  starterQuestions,
+}: {
+  hasDocs: boolean;
+  onPick: (text: string) => void;
+  summary?: string;
+  starterQuestions?: string[];
+}) {
+  const questions = starterQuestions && starterQuestions.length > 0 ? starterQuestions : SUGGESTIONS;
+
   return (
     <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-accent-2 shadow-lg shadow-accent/25">
@@ -128,7 +149,7 @@ function EmptyState({ hasDocs, onPick }: { hasDocs: boolean; onPick: (text: stri
         )}
       </div>
       <h2 className="text-xl font-semibold">
-        {hasDocs ? 'Ask a question about your documents' : 'Upload a document to begin'}
+        {hasDocs ? 'Your document is ready' : 'Upload a document to begin'}
       </h2>
       <p className="mt-2 max-w-md text-sm text-muted">
         {hasDocs
@@ -136,17 +157,33 @@ function EmptyState({ hasDocs, onPick }: { hasDocs: boolean; onPick: (text: stri
           : 'Add a PDF, Word doc, or text file from the panel on the left. Then ask anything and get answers with citations.'}
       </p>
 
+      {hasDocs && summary && (
+        <div className="mt-6 w-full max-w-xl rounded-2xl border border-border bg-surface p-4 text-left">
+          <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-accent">
+            <Sparkles className="h-3.5 w-3.5" />
+            Document summary
+          </div>
+          <p className="text-sm leading-relaxed text-foreground">{summary}</p>
+        </div>
+      )}
+
       {hasDocs && (
-        <div className="mt-6 flex w-full max-w-md flex-col gap-2">
-          {SUGGESTIONS.map((s) => (
-            <button
-              key={s}
-              onClick={() => onPick(s)}
-              className="rounded-xl border border-border bg-surface px-4 py-2.5 text-left text-sm text-foreground transition-colors hover:border-accent/50 hover:bg-surface-2"
-            >
-              {s}
-            </button>
-          ))}
+        <div className="mt-5 w-full max-w-xl">
+          <div className="mb-2 flex items-center justify-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
+            <Lightbulb className="h-3.5 w-3.5" />
+            Try asking
+          </div>
+          <div className="flex flex-col gap-2">
+            {questions.map((s) => (
+              <button
+                key={s}
+                onClick={() => onPick(s)}
+                className="rounded-xl border border-border bg-surface px-4 py-2.5 text-left text-sm text-foreground transition-colors hover:border-accent/50 hover:bg-surface-2"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

@@ -32,6 +32,9 @@ export default function Home() {
 
   const busy = status === 'submitted' || status === 'streaming';
   const hasDocs = documents.length > 0;
+  const onboardingDoc = [...documents]
+    .reverse()
+    .find((d) => d.summary || (d.starterQuestions?.length ?? 0) > 0);
 
   async function handleFiles(files: File[]) {
     setError(null);
@@ -90,6 +93,8 @@ export default function Home() {
           onSend={(text) => sendMessage({ text })}
           onStop={stop}
           error={chatError?.message ?? null}
+          summary={onboardingDoc?.summary}
+          starterQuestions={onboardingDoc?.starterQuestions}
         />
       </main>
     </div>

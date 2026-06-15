@@ -35,10 +35,30 @@ export type UploadedDocument = {
   /** Page count for PDFs; `null` otherwise. */
   pages: number | null;
   chunks: number;
+  /** AI-generated one-paragraph summary (shown on the onboarding screen). */
+  summary?: string;
+  /** AI-generated starter questions tailored to this document. */
+  starterQuestions?: string[];
+};
+
+/** Live progress of the retrieval pipeline, streamed as a `data-status` part. */
+export type ChatStatus = {
+  stage: 'understanding' | 'searching' | 'reading' | 'writing';
+  /** Number of relevant passages found (available from the `reading` stage on). */
+  found?: number;
 };
 
 /**
- * Our typed chat message: ordinary text parts plus a custom `sources` data part
- * (rendered in the UI as `data-sources`).
+ * Our typed chat message: ordinary text parts plus custom data parts:
+ * - `data-status`    → live pipeline progress
+ * - `data-sources`   → citations (document + page)
+ * - `data-followups` → suggested follow-up questions
  */
-export type ChatUIMessage = UIMessage<never, { sources: Source[] }>;
+export type ChatUIMessage = UIMessage<
+  never,
+  {
+    status: ChatStatus;
+    sources: Source[];
+    followups: string[];
+  }
+>;

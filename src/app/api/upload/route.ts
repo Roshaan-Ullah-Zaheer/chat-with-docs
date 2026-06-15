@@ -5,6 +5,7 @@ import { namespaceFor } from '@/lib/vector';
 import { parseFile } from '@/lib/parse';
 import { chunkSections } from '@/lib/chunk';
 import { getSessionId } from '@/lib/session';
+import { generateDocInsights } from '@/lib/insights';
 import type { UploadedDocument, ChunkMetadata } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -76,12 +77,16 @@ export async function POST(req: Request) {
 
       await ns.upsert(vectors);
 
+      const insights = await generateDocInsights(chunks.map((c) => c.text).join(' '));
+
       documents.push({
         id: documentId,
         name: file.name,
         type: parsed.type,
         pages: parsed.pages,
         chunks: chunks.length,
+        summary: insights?.summary,
+        starterQuestions: insights?.questions,
       });
     }
 

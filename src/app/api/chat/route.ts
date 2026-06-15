@@ -8,6 +8,7 @@ import {
 import { chatModel, embeddingModel, embedQueryOptions } from '@/lib/ai';
 import { namespaceFor } from '@/lib/vector';
 import { getSessionId } from '@/lib/session';
+import { generateFollowups } from '@/lib/insights';
 import type { ChatUIMessage, Source, ChunkMetadata } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -17,61 +18,64 @@ const TOP_K = 6;
 
 /**
  * POST /api/chat
- * Retrieval-augmented chat. We embed the latest question, pull the most relevant
- * chunks from this session's namespace, stream the matched sources to the client
- * as a `data-sources` part, then stream a grounded, citation-aware answer.
+ * Retrieval-augmented chat. Streams live pipeline status, the matched sources
+ * (document + page), a grounded citation-aware answer, then follow-up questions.
  */
 export async function POST(req: Request) {
   const sessionId = getSessionId(req);
   const { messages }: { messages: ChatUIMessage[] } = await req.json();
-
   const question = latestUserText(messages);
-
-  let sources: Source[] = [];
-  let context = '';
-
-  if (question) {
-    const { embedding } = await embed({
-      model: embeddingModel,
-      value: question,
-      providerOptions: embedQueryOptions,
-    });
-
-    const results = await namespaceFor(sessionId).query({
-      vector: embedding,
-      topK: TOP_K,
-      includeMetadata: true,
-    });
-
-    const matches = results.filter((r) => r.metadata);
-
-    sources = matches.map((r, i) => {
-      const m = r.metadata as ChunkMetadata;
-      return {
-        ref: i + 1,
-        documentId: m.documentId,
-        documentName: m.documentName,
-        page: m.page,
-        snippet: m.text.length > 240 ? `${m.text.slice(0, 240).trimEnd()}…` : m.text,
-        score: round(r.score),
-      };
-    });
-
-    context = matches
-      .map((r, i) => {
-        const m = r.metadata as ChunkMetadata;
-        const where = m.page ? `, page ${m.page}` : '';
-        return `[${i + 1}] (Document: "${m.documentName}"${where})\n${m.text}`;
-      })
-      .join('\n\n');
-  }
-
-  const system = buildSystemPrompt(context);
 
   const stream = createUIMessageStream<ChatUIMessage>({
     execute: async ({ writer }) => {
-      // Send the citations first so the UI can render source chips immediately.
-      writer.write({ type: 'data-sources', id: 'sources', data: sources });
+      let sources: Source[] = [];
+      let context = '';
+
+      if (question) {
+        writer.write({ type: 'data-status', id: 'status', data: { stage: 'understanding' } });
+
+        const { embedding } = await embed({
+          model: embeddingModel,
+          value: question,
+          providerOptions: embedQueryOptions,
+        });
+
+        writer.write({ type: 'data-status', id: 'status', data: { stage: 'searching' } });
+
+        const results = await namespaceFor(sessionId).query({
+          vector: embedding,
+          topK: TOP_K,
+          includeMetadata: true,
+        });
+        const matches = results.filter((r) => r.metadata);
+
+        sources = matches.map((r, i) => {
+          const m = r.metadata as ChunkMetadata;
+          return {
+            ref: i + 1,
+            documentId: m.documentId,
+            documentName: m.documentName,
+            page: m.page,
+            snippet: m.text.length > 240 ? `${m.text.slice(0, 240).trimEnd()}…` : m.text,
+            score: round(r.score),
+          };
+        });
+
+        context = matches
+          .map((r, i) => {
+            const m = r.metadata as ChunkMetadata;
+            const where = m.page ? `, page ${m.page}` : '';
+            return `[${i + 1}] (Document: "${m.documentName}"${where})\n${m.text}`;
+          })
+          .join('\n\n');
+
+        writer.write({ type: 'data-status', id: 'status', data: { stage: 'reading', found: sources.length } });
+        writer.write({ type: 'data-sources', id: 'sources', data: sources });
+      }
+
+      const system = buildSystemPrompt(context);
+
+      writer.write({ type: 'data-status', id: 'status', data: { stage: 'writing', found: sources.length } });
 
       const result = streamText({
         model: chatModel,
@@ -80,6 +84,15 @@ export async function POST(req: Request) {
       });
 
       writer.merge(result.toUIMessageStream());
+
+      // Once the answer is complete, suggest natural follow-up questions.
+      if (sources.length > 0 && question) {
+        const answer = await result.text;
+        const followups = await generateFollowups(question, answer);
+        if (followups.length > 0) {
+          writer.write({ type: 'data-followups', id: 'followups', data: followups });
+        }
+      }
     },
   });
 
