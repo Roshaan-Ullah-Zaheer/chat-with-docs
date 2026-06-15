@@ -24,12 +24,19 @@ export default function Home() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState('');
+  const [ready, setReady] = useState(false);
 
   const { messages, sendMessage, status, stop, setMessages, error: chatError } =
     useChat<ChatUIMessage>();
 
   useEffect(() => {
-    setSessionId(ensureSessionId());
+    const sid = ensureSessionId();
+    setSessionId(sid);
+    // Clear any vectors left in this browser's namespace from a previous visit so
+    // retrieval only ever sees the documents currently shown in the UI.
+    fetch('/api/documents', { method: 'DELETE', headers: { 'x-session-id': sid } })
+      .catch(() => {})
+      .finally(() => setReady(true));
   }, []);
 
   const busy = status === 'submitted' || status === 'streaming';
@@ -93,7 +100,7 @@ export default function Home() {
         <div className="h-[42vh] shrink-0 md:h-full md:w-80">
           <Sidebar
             documents={documents}
-            uploading={uploading}
+            uploading={uploading || !ready}
             onFiles={handleFiles}
             onClear={handleClear}
             error={error}

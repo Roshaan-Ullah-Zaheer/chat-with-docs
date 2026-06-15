@@ -27,6 +27,7 @@ export async function POST(req: Request) {
   const question = latestUserText(messages);
 
   const stream = createUIMessageStream<ChatUIMessage>({
+    onError: friendlyError,
     execute: async ({ writer }) => {
       let sources: Source[] = [];
       let context = '';
@@ -83,7 +84,9 @@ export async function POST(req: Request) {
         messages: await convertToModelMessages(messages),
       });
 
-      writer.merge(result.toUIMessageStream());
+      // `sendStart: false` keeps the answer in the SAME assistant message as the
+      // status/sources parts we already wrote (otherwise it starts a 2nd bubble).
+      writer.merge(result.toUIMessageStream({ sendStart: false }));
 
       // Once the answer is complete, suggest natural follow-up questions.
       if (sources.length > 0 && question) {
@@ -134,4 +137,16 @@ ${context}`;
 function round(value: number | undefined): number {
   if (typeof value !== 'number' || Number.isNaN(value)) return 0;
   return Math.round(value * 1000) / 1000;
+}
+
+/** Turn provider errors into a friendly message shown in the chat. */
+function friendlyError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/quota|rate.?limit|429|RESOURCE_EXHAUSTED/i.test(message)) {
+    return "This free demo has reached today's AI usage limit. Please try again later.";
+  }
+  if (/503|UNAVAILABLE|overloaded|high demand/i.test(message)) {
+    return 'The AI model is busy right now — please try again in a moment.';
+  }
+  return 'Sorry, something went wrong generating the answer. Please try again.';
 }

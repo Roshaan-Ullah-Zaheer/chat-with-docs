@@ -14,8 +14,20 @@ import { google, type GoogleEmbeddingModelOptions } from '@ai-sdk/google';
  * Auth: the Google provider reads `GOOGLE_GENERATIVE_AI_API_KEY` from the env.
  */
 
-/** Chat / answer model. Gemini 2.5 Flash is fast and generous on the free tier. */
-export const chatModel = google('gemini-2.5-flash');
+/**
+ * Chat / answer model. Gemini 2.5 Flash-Lite is the model Google keeps in the
+ * free tier with the most generous request allowance, so it's the safest default
+ * for a free public demo. Swap to `gemini-2.5-flash` (or another provider) for
+ * higher quality if you have billing/quota.
+ */
+export const chatModel = google('gemini-2.5-flash-lite');
+
+/**
+ * Secondary model for non-answer work (document summaries, follow-up questions).
+ * The free tier's request quota is per-model, so using a different model here
+ * keeps those background calls from eating into the answer model's allowance.
+ */
+export const auxModel = google('gemini-2.0-flash');
 
 /**
  * Embedding output dimension. The Upstash Vector index MUST be created with this

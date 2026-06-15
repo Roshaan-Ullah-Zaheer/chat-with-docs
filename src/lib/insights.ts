@@ -1,6 +1,6 @@
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { chatModel } from './ai';
+import { auxModel } from './ai';
 
 const docInsightsSchema = z.object({
   summary: z.string().describe('A clear 2-3 sentence summary of what this document is about.'),
@@ -18,7 +18,7 @@ export async function generateDocInsights(
 ): Promise<{ summary: string; questions: string[] } | null> {
   try {
     const { object } = await generateObject({
-      model: chatModel,
+      model: auxModel,
       schema: docInsightsSchema,
       prompt: `Read the following document excerpt and produce a concise summary plus 4 starter questions someone might ask about it. Keep questions specific to the actual content.\n\n---\n${text.slice(0, 6000)}\n---`,
     });
@@ -42,7 +42,7 @@ const followupsSchema = z.object({
 export async function generateFollowups(question: string, answer: string): Promise<string[]> {
   try {
     const { object } = await generateObject({
-      model: chatModel,
+      model: auxModel,
       schema: followupsSchema,
       prompt: `Given this Q&A about a user's documents, suggest up to 3 short, natural follow-up questions the user is likely to ask next. Make them specific and answerable from documents.\n\nQuestion: ${question}\n\nAnswer: ${answer}`,
     });
