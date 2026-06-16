@@ -1,6 +1,5 @@
-import { embedMany } from 'ai';
 import { nanoid } from 'nanoid';
-import { embeddingModel, embedDocumentOptions } from '@/lib/ai';
+import { embedDocuments } from '@/lib/ai';
 import { namespaceFor } from '@/lib/vector';
 import { parseFile } from '@/lib/parse';
 import { chunkSections } from '@/lib/chunk';
@@ -57,11 +56,7 @@ export async function POST(req: Request) {
 
       const documentId = nanoid(10);
 
-      const { embeddings } = await embedMany({
-        model: embeddingModel,
-        values: chunks.map((c) => c.text),
-        providerOptions: embedDocumentOptions,
-      });
+      const embeddings = await embedDocuments(chunks.map((c) => c.text));
 
       const vectors = embeddings.map((embedding, i) => ({
         id: `${documentId}_${i}`,

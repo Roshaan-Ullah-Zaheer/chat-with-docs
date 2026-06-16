@@ -75,12 +75,13 @@ flowchart TD
 | Language | **TypeScript** | Type-safe end to end |
 | Styling | **Tailwind CSS v4** | Fast, consistent, modern UI |
 | AI orchestration | **Vercel AI SDK v6** | Streaming, embeddings, provider-agnostic |
-| LLM + embeddings | **Google Gemini** (2.5 Flash + embeddings) | Strong quality on a generous free tier |
+| LLM (answers) | **Google Gemini** (2.5 Flash → Flash-Lite) with **Groq** (Llama 3.3 70B) fallback | Multi-key, multi-model failover so the demo never breaks on free-tier limits |
+| Embeddings | **Gemini** `gemini-embedding-001` (768-dim) across all keys | Strong retrieval quality, free |
 | Vector database | **Upstash Vector** | Serverless, free tier, zero ops |
 | Document parsing | **unpdf** (PDF), **mammoth** (DOCX) | Pure-JS, serverless-friendly |
 | Hosting | **Vercel** | Free, single-command deploy |
 
-> **Provider-agnostic by design.** The AI provider lives in one file ([`src/lib/ai.ts`](src/lib/ai.ts)). Swap Gemini for OpenAI or Anthropic by changing two lines — the rest of the app is untouched.
+> **Provider-agnostic & resilient by design.** All model calls live in one file ([`src/lib/ai.ts`](src/lib/ai.ts)) and run through a fallback chain: each Gemini key is tried with `gemini-2.5-flash` then `gemini-2.5-flash-lite`, across every key, then **Groq** as a last resort. If one key hits its free-tier limit, the next takes over automatically — so every feature keeps working.
 
 ---
 
@@ -88,7 +89,8 @@ flowchart TD
 
 ### 1. Prerequisites
 - Node.js 18.18+ (Node 22 recommended)
-- A free **Google Gemini API key** → https://aistudio.google.com/apikey
+- One or more free **Google Gemini API keys** → https://aistudio.google.com/apikey (add several, comma-separated, for automatic failover)
+- A free **Groq API key** (final fallback for answers) → https://console.groq.com/keys
 - A free **Upstash Vector** index → https://console.upstash.com/vector
   - **Dimensions: `768`** · **Metric: `COSINE`**
 
@@ -103,7 +105,10 @@ cp .env.example .env.local   # then paste your keys into .env.local
 
 `.env.local`:
 ```env
-GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_key
+# One or more Gemini keys, comma-separated (tried in order, flash then flash-lite)
+GOOGLE_API_KEYS=gemini_key_1,gemini_key_2,gemini_key_3
+# Final fallback for answers when all Gemini keys are exhausted
+GROQ_API_KEY=your_groq_key
 UPSTASH_VECTOR_REST_URL=your_upstash_rest_url
 UPSTASH_VECTOR_REST_TOKEN=your_upstash_rest_token
 ```
@@ -119,7 +124,7 @@ npm run dev      # http://localhost:3000
 
 1. Push this repo to GitHub.
 2. Import it at [vercel.com/new](https://vercel.com/new).
-3. Add the three environment variables from `.env.local` in **Project → Settings → Environment Variables**.
+3. Add the environment variables from `.env.local` (`GOOGLE_API_KEYS`, `GROQ_API_KEY`, `UPSTASH_VECTOR_REST_URL`, `UPSTASH_VECTOR_REST_TOKEN`) in **Project → Settings → Environment Variables**.
 4. Deploy. Vercel gives you a live `https://….vercel.app` URL.
 
 ---

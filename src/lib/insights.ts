@@ -1,6 +1,5 @@
-import { generateObject } from 'ai';
 import { z } from 'zod';
-import { auxModel } from './ai';
+import { generateStructured } from './ai';
 
 const docInsightsSchema = z.object({
   summary: z.string().describe('A clear 2-3 sentence summary of what this document is about.'),
@@ -11,14 +10,14 @@ const docInsightsSchema = z.object({
 
 /**
  * Generate a short summary and tailored starter questions for a document.
- * Returns `null` on failure so the upload flow never breaks.
+ * Uses the full provider fallback chain. Returns `null` on total failure so the
+ * upload flow never breaks.
  */
 export async function generateDocInsights(
   text: string,
 ): Promise<{ summary: string; questions: string[] } | null> {
   try {
-    const { object } = await generateObject({
-      model: auxModel,
+    const object = await generateStructured({
       schema: docInsightsSchema,
       prompt: `Read the following document excerpt and produce a concise summary plus 4 starter questions someone might ask about it. Keep questions specific to the actual content.\n\n---\n${text.slice(0, 6000)}\n---`,
     });
@@ -37,12 +36,11 @@ const followupsSchema = z.object({
 
 /**
  * Suggest follow-up questions based on the question just asked and the answer given.
- * Returns an empty array on failure.
+ * Uses the full provider fallback chain. Returns an empty array on failure.
  */
 export async function generateFollowups(question: string, answer: string): Promise<string[]> {
   try {
-    const { object } = await generateObject({
-      model: auxModel,
+    const object = await generateStructured({
       schema: followupsSchema,
       prompt: `Given this Q&A about a user's documents, suggest up to 3 short, natural follow-up questions the user is likely to ask next. Make them specific and answerable from documents.\n\nQuestion: ${question}\n\nAnswer: ${answer}`,
     });

@@ -1,11 +1,9 @@
 import {
   createUIMessageStream,
   createUIMessageStreamResponse,
-  streamText,
   convertToModelMessages,
-  embed,
 } from 'ai';
-import { chatModel, embeddingModel, embedQueryOptions } from '@/lib/ai';
+import { generateAnswer, embedQuery } from '@/lib/ai';
 import { namespaceFor } from '@/lib/vector';
 import { getSessionId } from '@/lib/session';
 import { generateFollowups } from '@/lib/insights';
@@ -15,11 +13,13 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 const TOP_K = 6;
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * POST /api/chat
- * Retrieval-augmented chat. Streams live pipeline status, the matched sources
- * (document + page), a grounded citation-aware answer, then follow-up questions.
+ * Retrieval-augmented chat. Streams live pipeline status, the matched sources,
+ * a grounded citation-aware answer, then follow-up questions. Every model call
+ * goes through the multi-key Gemini -> Groq fallback chain.
  */
 export async function POST(req: Request) {
   const sessionId = getSessionId(req);
@@ -31,66 +31,80 @@ export async function POST(req: Request) {
     execute: async ({ writer }) => {
       let sources: Source[] = [];
       let context = '';
+      let retrievalFailed = false;
 
       if (question) {
-        writer.write({ type: 'data-status', id: 'status', data: { stage: 'understanding' } });
+        try {
+          writer.write({ type: 'data-status', id: 'status', data: { stage: 'understanding' } });
+          const embedding = await embedQuery(question);
 
-        const { embedding } = await embed({
-          model: embeddingModel,
-          value: question,
-          providerOptions: embedQueryOptions,
-        });
+          writer.write({ type: 'data-status', id: 'status', data: { stage: 'searching' } });
+          const results = await namespaceFor(sessionId).query({
+            vector: embedding,
+            topK: TOP_K,
+            includeMetadata: true,
+          });
+          const matches = results.filter((r) => r.metadata);
 
-        writer.write({ type: 'data-status', id: 'status', data: { stage: 'searching' } });
-
-        const results = await namespaceFor(sessionId).query({
-          vector: embedding,
-          topK: TOP_K,
-          includeMetadata: true,
-        });
-        const matches = results.filter((r) => r.metadata);
-
-        sources = matches.map((r, i) => {
-          const m = r.metadata as ChunkMetadata;
-          return {
-            ref: i + 1,
-            documentId: m.documentId,
-            documentName: m.documentName,
-            page: m.page,
-            snippet: m.text.length > 240 ? `${m.text.slice(0, 240).trimEnd()}…` : m.text,
-            score: round(r.score),
-          };
-        });
-
-        context = matches
-          .map((r, i) => {
+          sources = matches.map((r, i) => {
             const m = r.metadata as ChunkMetadata;
-            const where = m.page ? `, page ${m.page}` : '';
-            return `[${i + 1}] (Document: "${m.documentName}"${where})\n${m.text}`;
-          })
-          .join('\n\n');
+            return {
+              ref: i + 1,
+              documentId: m.documentId,
+              documentName: m.documentName,
+              page: m.page,
+              snippet: m.text.length > 240 ? `${m.text.slice(0, 240).trimEnd()}…` : m.text,
+              score: round(r.score),
+            };
+          });
 
-        writer.write({ type: 'data-status', id: 'status', data: { stage: 'reading', found: sources.length } });
-        writer.write({ type: 'data-sources', id: 'sources', data: sources });
+          context = matches
+            .map((r, i) => {
+              const m = r.metadata as ChunkMetadata;
+              const where = m.page ? `, page ${m.page}` : '';
+              return `[${i + 1}] (Document: "${m.documentName}"${where})\n${m.text}`;
+            })
+            .join('\n\n');
+
+          writer.write({ type: 'data-status', id: 'status', data: { stage: 'reading', found: sources.length } });
+          writer.write({ type: 'data-sources', id: 'sources', data: sources });
+        } catch (err) {
+          retrievalFailed = true;
+          console.error('[chat] retrieval failed', err);
+        }
       }
-
-      const system = buildSystemPrompt(context);
 
       writer.write({ type: 'data-status', id: 'status', data: { stage: 'writing', found: sources.length } });
 
-      const result = streamText({
-        model: chatModel,
-        system,
-        messages: await convertToModelMessages(messages),
-      });
+      // Produce the answer through the fallback chain, degrading gracefully.
+      let answer: string;
+      if (retrievalFailed) {
+        answer =
+          "I couldn't search your documents just now — the search service is busy. Please try again in a moment.";
+      } else {
+        try {
+          answer = await generateAnswer({
+            system: buildSystemPrompt(context),
+            messages: await convertToModelMessages(messages),
+          });
+        } catch (err) {
+          console.error('[chat] all answer providers failed', err);
+          answer =
+            "I'm having trouble reaching the AI models right now. Please try again in a moment.";
+        }
+      }
 
-      // `sendStart: false` keeps the answer in the SAME assistant message as the
-      // status/sources parts we already wrote (otherwise it starts a 2nd bubble).
-      writer.merge(result.toUIMessageStream({ sendStart: false }));
+      // Stream the answer text token-by-token for a live typing effect.
+      const textId = 'answer';
+      writer.write({ type: 'text-start', id: textId });
+      for (const piece of chunkText(answer)) {
+        writer.write({ type: 'text-delta', id: textId, delta: piece });
+        await delay(10);
+      }
+      writer.write({ type: 'text-end', id: textId });
 
-      // Once the answer is complete, suggest natural follow-up questions.
-      if (sources.length > 0 && question) {
-        const answer = await result.text;
+      // Suggest follow-ups once we have a grounded answer.
+      if (question && !retrievalFailed && sources.length > 0) {
         const followups = await generateFollowups(question, answer);
         if (followups.length > 0) {
           writer.write({ type: 'data-followups', id: 'followups', data: followups });
@@ -132,6 +146,11 @@ Rules:
 
 Context passages:
 ${context}`;
+}
+
+/** Split text into word-sized pieces (keeping trailing spaces) for streaming. */
+function chunkText(text: string): string[] {
+  return text.match(/\S+\s*/g) ?? [text];
 }
 
 function round(value: number | undefined): number {

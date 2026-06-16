@@ -1,55 +1,162 @@
-import { google, type GoogleEmbeddingModelOptions } from '@ai-sdk/google';
+import { createGoogleGenerativeAI, type GoogleEmbeddingModelOptions } from '@ai-sdk/google';
+import { createGroq } from '@ai-sdk/groq';
+import {
+  generateText,
+  generateObject,
+  embed,
+  embedMany,
+  type LanguageModel,
+  type ModelMessage,
+} from 'ai';
+import type { z } from 'zod';
 
 /**
- * Single place to configure the AI provider.
+ * Multi-key, multi-model fallback layer.
  *
- * To swap providers (e.g. to OpenAI or Anthropic), install the relevant
- * `@ai-sdk/*` package and change the model lines below — nothing else in the
- * app needs to change. For example:
+ * Text generation (answers, summaries, follow-ups) tries, in order:
+ *   key1: gemini-2.5-flash -> gemini-2.5-flash-lite
+ *   key2: gemini-2.5-flash -> gemini-2.5-flash-lite
+ *   ...one entry per key...
+ *   groq: llama-3.3-70b-versatile        (last resort)
  *
- *   import { openai } from '@ai-sdk/openai';
- *   export const chatModel = openai('gpt-4o-mini');
- *   export const embeddingModel = openai.embedding('text-embedding-3-small');
- *
- * Auth: the Google provider reads `GOOGLE_GENERATIVE_AI_API_KEY` from the env.
+ * Embeddings cycle through the same Gemini keys (Groq has no embeddings).
+ * Configure keys via env:
+ *   GOOGLE_API_KEYS = comma-separated Gemini API keys
+ *   GROQ_API_KEY    = a single Groq key
  */
 
-/**
- * Chat / answer model. Gemini 2.5 Flash-Lite is the model Google keeps in the
- * free tier with the most generous request allowance, so it's the safest default
- * for a free public demo. Swap to `gemini-2.5-flash` (or another provider) for
- * higher quality if you have billing/quota.
- */
-export const chatModel = google('gemini-2.5-flash-lite');
-
-/**
- * Secondary model for non-answer work (document summaries, follow-up questions).
- * The free tier's request quota is per-model, so using a different model here
- * keeps those background calls from eating into the answer model's allowance.
- */
-export const auxModel = google('gemini-2.0-flash');
-
-/**
- * Embedding output dimension. The Upstash Vector index MUST be created with this
- * exact dimension and the COSINE distance metric.
- */
+/** Embedding dimension — the Upstash index must match this exactly (768, COSINE). */
 export const EMBED_DIM = 768;
 
-/** Embedding model. `gemini-embedding-001` supports a custom output dimension. */
-export const embeddingModel = google.embedding('gemini-embedding-001');
+const GOOGLE_TEXT_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+const GROQ_TEXT_MODELS = ['llama-3.3-70b-versatile'];
+const EMBED_MODEL = 'gemini-embedding-001';
 
-/** Options used when embedding document chunks (asymmetric retrieval). */
-export const embedDocumentOptions = {
-  google: {
-    outputDimensionality: EMBED_DIM,
-    taskType: 'RETRIEVAL_DOCUMENT',
-  } satisfies GoogleEmbeddingModelOptions,
+function googleKeys(): string[] {
+  const raw = process.env.GOOGLE_API_KEYS ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? '';
+  return raw
+    .split(',')
+    .map((k) => k.trim())
+    .filter(Boolean);
+}
+
+type GoogleProvider = ReturnType<typeof createGoogleGenerativeAI>;
+
+let googleProvidersCache: { label: string; provider: GoogleProvider }[] | null = null;
+function googleProviders() {
+  if (!googleProvidersCache) {
+    googleProvidersCache = googleKeys().map((key, i) => ({
+      label: `gemini#${i + 1}`,
+      provider: createGoogleGenerativeAI({ apiKey: key }),
+    }));
+  }
+  return googleProvidersCache;
+}
+
+type TextCandidate = { label: string; model: LanguageModel };
+
+let textCandidatesCache: TextCandidate[] | null = null;
+function textCandidates(): TextCandidate[] {
+  if (textCandidatesCache) return textCandidatesCache;
+
+  const out: TextCandidate[] = [];
+  for (const { label, provider } of googleProviders()) {
+    for (const model of GOOGLE_TEXT_MODELS) {
+      out.push({ label: `${label}/${model}`, model: provider(model) });
+    }
+  }
+
+  const groqKey = process.env.GROQ_API_KEY?.trim();
+  if (groqKey) {
+    const groq = createGroq({ apiKey: groqKey });
+    for (const model of GROQ_TEXT_MODELS) {
+      out.push({ label: `groq/${model}`, model: groq(model) });
+    }
+  }
+
+  textCandidatesCache = out;
+  return out;
+}
+
+/** Try each candidate in order; return the first success, else throw the last error. */
+async function runFallback<T>(
+  op: string,
+  items: { label: string }[],
+  fn: (index: number) => Promise<T>,
+): Promise<T> {
+  if (items.length === 0) throw new Error(`No providers configured for "${op}". Check your API keys.`);
+  let lastError: unknown;
+  for (let i = 0; i < items.length; i++) {
+    try {
+      return await fn(i);
+    } catch (err) {
+      lastError = err;
+      console.warn(`[ai] ${op} via ${items[i].label} failed:`, err instanceof Error ? err.message : err);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(`All providers failed for "${op}".`);
+}
+
+/** Generate a plain-text answer using the full fallback chain. */
+export async function generateAnswer(opts: { system: string; messages: ModelMessage[] }): Promise<string> {
+  const candidates = textCandidates();
+  return runFallback('chat', candidates, async (i) => {
+    const { text } = await generateText({
+      model: candidates[i].model,
+      system: opts.system,
+      messages: opts.messages,
+      maxRetries: 0,
+    });
+    if (!text.trim()) throw new Error('empty response');
+    return text;
+  });
+}
+
+/** Generate a structured object (summaries, follow-ups) using the full fallback chain. */
+export async function generateStructured<T>(opts: { schema: z.ZodType<T>; prompt: string }): Promise<T> {
+  const candidates = textCandidates();
+  return runFallback('structured', candidates, async (i) => {
+    const { object } = await generateObject({
+      model: candidates[i].model,
+      schema: opts.schema,
+      prompt: opts.prompt,
+      maxRetries: 0,
+    });
+    return object;
+  });
+}
+
+const queryEmbedOptions = {
+  google: { outputDimensionality: EMBED_DIM, taskType: 'RETRIEVAL_QUERY' } satisfies GoogleEmbeddingModelOptions,
+};
+const docEmbedOptions = {
+  google: { outputDimensionality: EMBED_DIM, taskType: 'RETRIEVAL_DOCUMENT' } satisfies GoogleEmbeddingModelOptions,
 };
 
-/** Options used when embedding a user's question. */
-export const embedQueryOptions = {
-  google: {
-    outputDimensionality: EMBED_DIM,
-    taskType: 'RETRIEVAL_QUERY',
-  } satisfies GoogleEmbeddingModelOptions,
-};
+/** Embed a single query string, cycling through the Gemini keys. */
+export async function embedQuery(text: string): Promise<number[]> {
+  const providers = googleProviders();
+  return runFallback('embed-query', providers, async (i) => {
+    const { embedding } = await embed({
+      model: providers[i].provider.textEmbeddingModel(EMBED_MODEL),
+      value: text,
+      providerOptions: queryEmbedOptions,
+      maxRetries: 0,
+    });
+    return embedding;
+  });
+}
+
+/** Embed many document chunks, cycling through the Gemini keys. */
+export async function embedDocuments(texts: string[]): Promise<number[][]> {
+  const providers = googleProviders();
+  return runFallback('embed-docs', providers, async (i) => {
+    const { embeddings } = await embedMany({
+      model: providers[i].provider.textEmbeddingModel(EMBED_MODEL),
+      values: texts,
+      providerOptions: docEmbedOptions,
+      maxRetries: 0,
+    });
+    return embeddings;
+  });
+}
