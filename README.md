@@ -51,7 +51,7 @@ DocChat is a production-style **RAG (Retrieval-Augmented Generation)** applicati
 
 ```mermaid
 flowchart TD
-    U([User]) -->|drag & drop files| UI[Next.js UI]
+    U([User]) -->|drag and drop files| UI[Next.js UI]
     U -->|asks a question| UI
 
     subgraph Ingest["Ingestion  -  /api/upload"]
@@ -61,7 +61,7 @@ flowchart TD
 
     subgraph Query["Query  -  /api/chat"]
         E2[Embed question] --> S[Vector search<br/>top-k passages]
-        S --> G[Gemini 2.5 Flash<br/>answer + inline citations]
+        S --> G[Gemini / Groq fallback<br/>answer + inline citations]
     end
 
     UI -->|upload| Ingest
@@ -76,7 +76,7 @@ flowchart TD
 1. **Embed the question** with Gemini (`gemini-embedding-001`, `RETRIEVAL_QUERY` task type).
 2. **Search** the session's Upstash Vector namespace for the `top-k` most similar chunks (cosine similarity).
 3. **Build a grounded prompt** containing only those numbered passages, with strict instructions: answer *only* from context, cite sources inline, and say "I couldn't find that" when the answer isn't present.
-4. **Stream** the answer from `gemini-2.5-flash`, and stream the matched **sources** (document + page + snippet) to the UI as structured data parts that render as clickable citations.
+4. **Generate** the answer through the multi-key Gemini → Groq fallback chain, **streamed token-by-token**, alongside the matched **sources** (document + page + snippet) — sent to the UI as structured data parts that render as clickable citations.
 
 ---
 
@@ -188,10 +188,12 @@ src/
 │   └── layout.tsx
 ├── components/                  # Sidebar, Chat, MessageBubble, Sources, UploadZone...
 └── lib/
-    ├── ai.ts                    # provider config (swap models here)
+    ├── ai.ts                    # multi-key Gemini -> Groq fallback chain
+    ├── insights.ts              # AI document summaries + follow-up questions
     ├── vector.ts                # Upstash client + per-session namespaces
     ├── parse.ts                 # PDF / DOCX / TXT extraction (keeps page numbers)
     ├── chunk.ts                 # overlapping text chunking
+    ├── session.ts               # per-browser session id handling
     └── types.ts                 # shared types
 ```
 
