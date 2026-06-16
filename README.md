@@ -21,16 +21,30 @@
 DocChat is a production-style **RAG (Retrieval-Augmented Generation)** application. Instead of answering from a model's general knowledge (which can hallucinate), it answers **only from the documents you upload** and shows **where each answer came from**.
 
 - 📥 **Multi-format upload** — PDF, Word (`.docx`), and text (`.txt` / `.md`), several at once via drag-and-drop.
-- 🔎 **Grounded answers** — questions are matched against your documents using semantic vector search; the model only sees the most relevant passages.
-- 🧾 **Source citations** — every answer includes inline `[1]`, `[2]` markers and clickable source chips showing the **document name + page number**. Click a chip to read the exact passage the answer used.
-- 💬 **Real-time streaming chat** — answers stream token-by-token in a clean, modern interface.
+- 🧠 **Smart onboarding** — the moment you upload, it shows an AI summary of the document and tailored starter questions.
+- 🔎 **Grounded answers** — semantic vector search feeds the model only the most relevant passages; it answers *only* from your files, or says it couldn't find it.
+- 🧾 **Clickable source citations** — inline `[1]`, `[2]` markers plus source chips showing **document name + page**. For PDFs, click a citation to open the **exact page with the passage highlighted**.
+- 💬 **Live pipeline + follow-ups** — answers stream token-by-token with a visible retrieval pipeline, then suggest natural follow-up questions.
+- 🛡️ **Resilient on free tiers** — a multi-key Gemini → Groq fallback chain keeps every feature working even when a key hits its daily limit.
 - 🔒 **Per-session isolation** — each visitor's documents live in their own vector namespace.
-- 💸 **Runs on $0** — Google Gemini's free tier + free hosting tiers. No credit card required.
+- 💸 **Runs on $0** — free AI + hosting tiers, no credit card required.
 
 > 🎬 **[Try the live demo →](https://chat-with-docs-iota.vercel.app)** — upload a document and ask it anything.
 
-<!-- Screenshot added after deployment: ![DocChat — chat with citations](docs/screenshot-chat.png) -->
+---
 
+## 📸 Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/01-onboarding.png" alt="AI summary and tailored starter questions on upload"/><br/><sub><b>Smart onboarding</b> — an AI summary + tailored questions the moment you upload.</sub></td>
+    <td width="50%"><img src="docs/02-grounded-answer.png" alt="Grounded answer with clickable inline citations"/><br/><sub><b>Grounded answers</b> — streamed token-by-token with clickable inline citations.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/03-sources-followups.png" alt="Sources showing document and page, plus suggested follow-ups"/><br/><sub><b>Sources &amp; follow-ups</b> — each answer shows its source document + page and suggests next questions.</sub></td>
+    <td width="50%"><img src="docs/04-pdf-highlight.png" alt="PDF opened to the exact page with the passage highlighted"/><br/><sub><b>PDF source highlighting</b> — click a citation to open the exact page with the passage highlighted.</sub></td>
+  </tr>
+</table>
 
 ---
 
@@ -82,6 +96,28 @@ flowchart TD
 | Hosting | **Vercel** | Free, single-command deploy |
 
 > **Provider-agnostic & resilient by design.** All model calls live in one file ([`src/lib/ai.ts`](src/lib/ai.ts)) and run through a fallback chain: each Gemini key is tried with `gemini-2.5-flash` then `gemini-2.5-flash-lite`, across every key, then **Groq** as a last resort. If one key hits its free-tier limit, the next takes over automatically — so every feature keeps working.
+
+---
+
+## 🔑 Getting your free API keys
+
+Everything below is **free** and needs **no credit card**.
+
+### 1. Google Gemini — chat answers + embeddings
+1. Go to **https://aistudio.google.com/apikey** and sign in with a Google account.
+2. Click **Create API key → Create API key in new project**.
+3. Copy the key (looks like `AIza…` or `AQ.…`).
+4. *(Recommended)* Repeat with one or two **other** Google accounts. The app rotates through all of them, so more keys = more free headroom. Put them all in `GOOGLE_API_KEYS`, comma-separated.
+
+### 2. Groq — answer fallback (when all Gemini keys are busy)
+1. Go to **https://console.groq.com/keys** and sign up (Google/GitHub login).
+2. Click **Create API Key**, name it, and copy it (looks like `gsk_…`).
+
+### 3. Upstash Vector — the search database
+1. Go to **https://console.upstash.com** and sign up (free).
+2. Open the **Vector** tab → **Create Index**.
+3. Set **Type: `Dense`**, **Embedding Model: `Custom`**, **Dimensions: `768`**, **Metric: `Cosine`**.
+4. Open the index → **Connect / .env** and copy `UPSTASH_VECTOR_REST_URL` and `UPSTASH_VECTOR_REST_TOKEN`.
 
 ---
 
