@@ -27,7 +27,6 @@ DocChat is a production-style **RAG (Retrieval-Augmented Generation)** applicati
 - 💬 **Live pipeline + follow-ups** — answers stream token-by-token with a visible retrieval pipeline, then suggest natural follow-up questions.
 - 🛡️ **Resilient on free tiers** — a multi-key Gemini → Groq fallback chain keeps every feature working even when a key hits its daily limit.
 - 🔒 **Per-session isolation** — each visitor's documents live in their own vector namespace.
-- 💸 **Runs on $0** — free AI + hosting tiers, no credit card required.
 
 > 🎬 **[Try the live demo →](https://chat-with-docs-iota.vercel.app)** — upload a document and ask it anything.
 
