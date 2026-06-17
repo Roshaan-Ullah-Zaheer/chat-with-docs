@@ -20,11 +20,11 @@ export function Sidebar({
   return (
     <aside className="flex h-full w-full flex-col gap-4 border-r border-border bg-surface/70 p-4 backdrop-blur md:w-80">
       <div className="flex items-center gap-2.5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-accent-2 shadow-lg shadow-accent/20">
+        <div className="grad-mark flex h-9 w-9 items-center justify-center rounded-xl shadow-lg shadow-fuchsia-500/20">
           <Sparkles className="h-5 w-5 text-white" />
         </div>
         <div>
-          <h1 className="text-base font-semibold leading-tight">DocChat</h1>
+          <h1 className="brand-text text-base font-bold leading-tight">DocChat</h1>
           <p className="text-xs text-muted">Chat with your documents</p>
         </div>
       </div>

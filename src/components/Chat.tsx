@@ -110,7 +110,7 @@ export function Chat({
               <button
                 onClick={() => submit(input)}
                 disabled={!input.trim() || !hasDocs}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white transition-colors hover:bg-accent-2 disabled:cursor-not-allowed disabled:opacity-40"
+                className="grad-btn flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white disabled:cursor-not-allowed disabled:opacity-40"
                 title="Send"
               >
                 <ArrowUp className="h-4 w-4" />
@@ -141,7 +141,7 @@ function EmptyState({
 
   return (
     <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-accent-2 shadow-lg shadow-accent/25">
+      <div className="grad-mark mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg shadow-fuchsia-500/25">
         {hasDocs ? (
           <MessagesSquare className="h-7 w-7 text-white" />
         ) : (

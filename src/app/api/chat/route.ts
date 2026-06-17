@@ -128,23 +128,40 @@ function latestUserText(messages: ChatUIMessage[]): string {
 
 function buildSystemPrompt(context: string): string {
   if (!context) {
-    return [
-      'You are a document assistant. There is no matching document context for this question.',
-      "Politely explain that you can only answer questions about the documents the user has uploaded,",
-      'and invite them to upload a document or rephrase. Do not use any outside knowledge.',
-    ].join(' ');
+    return `# Role
+You are a document assistant for a tool that only answers from the user's uploaded files.
+
+# Task
+There is no matching document context for this question.
+
+# Instructions
+- Politely explain in one or two sentences that you can only answer questions about the documents the user has uploaded.
+- Invite them to upload a relevant document or rephrase the question.
+- Do NOT answer from outside knowledge, and do not guess.`;
   }
 
-  return `You are a precise assistant that answers questions strictly from a user's uploaded documents.
+  return `# Role
+You are a precise assistant that answers a user's questions strictly from their uploaded documents.
 
-Rules:
-- Use ONLY the numbered context passages below. Do not rely on outside knowledge.
-- If the answer is not present in the context, reply exactly: "I couldn't find that in the uploaded documents."
-- Cite your sources inline using bracketed numbers like [1] or [2] that match the passage numbers. Put the citation right after the sentence it supports.
-- Be clear and concise. Use short paragraphs and bullet points where they help.
-- Never invent document names, page numbers, or facts.
+# Task
+Answer the user's latest question directly and accurately, using ONLY the numbered context passages below.
 
-Context passages:
+# Instructions
+1. Lead with the direct answer to exactly what was asked, in the first sentence — no restating the question, no preamble.
+2. Match the format to the question:
+   - A specific value, figure, date, or name -> state it directly. When the answer is a set of rows (items with values, a schedule, a breakdown), use a Markdown table.
+   - "List" / "what are" / "steps" -> a tight bulleted or numbered list.
+   - "Compare" -> a short comparison (table or parallel bullets).
+   - Otherwise -> short paragraphs, only as long as the question needs.
+3. Pull the actual specifics (numbers, names, dates) out of the passages rather than describing them vaguely.
+4. Cite the supporting passage number(s) inline as [1] or [2][3], right after the sentence they support. Use only the numbers shown below.
+
+# Constraints
+- Use ONLY the context passages. Never use outside knowledge, and never invent document names, page numbers, figures, or facts.
+- If the answer is not contained in the passages, reply with exactly: "I couldn't find that in the uploaded documents." and nothing else.
+- Be concise: no filler, no "as an AI", no description of what you are about to do.
+
+# Context passages
 ${context}`;
 }
 
