@@ -20,7 +20,7 @@ export function Sidebar({
   return (
     <aside className="flex h-full w-full flex-col gap-4 border-r border-border bg-surface/70 p-4 backdrop-blur md:w-80">
       <div className="flex items-center gap-2.5">
-        <div className="grad-mark flex h-9 w-9 items-center justify-center rounded-xl shadow-lg shadow-fuchsia-500/20">
+        <div className="grad-mark flex h-9 w-9 items-center justify-center rounded-xl shadow-lg shadow-pink-500/25">
           <Sparkles className="h-5 w-5 text-white" />
         </div>
         <div>

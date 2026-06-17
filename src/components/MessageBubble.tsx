@@ -50,7 +50,7 @@ export function MessageBubble({
         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
           isUser
             ? 'bg-surface-3 text-foreground'
-            : 'grad-mark text-white shadow-md shadow-fuchsia-500/20'
+            : 'grad-mark text-white shadow-md shadow-pink-500/25'
         }`}
       >
         {isUser ? <User className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}

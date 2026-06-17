@@ -141,7 +141,7 @@ function EmptyState({
 
   return (
     <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
-      <div className="grad-mark mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg shadow-fuchsia-500/25">
+      <div className="grad-mark animate-float mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg shadow-pink-500/30">
         {hasDocs ? (
           <MessagesSquare className="h-7 w-7 text-white" />
         ) : (

@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #080a16;
-  --surface: #111827;
-  --surface-2: #182235;
-  --surface-3: #1f2c44;
-  --border: #25324d;
-  --foreground: #e6eaf2;
-  --muted: #8b97ad;
-  --accent: #6366f1;
-  --accent-2: #8b5cf6;
-  --accent-3: #d946ef;
+  --background: #0c0910;
+  --surface: #18131e;
+  --surface-2: #211a29;
+  --surface-3: #2d2336;
+  --border: #382a40;
+  --foreground: #f4ecef;
+  --muted: #ad9ba8;
+  --accent: #ec4899;     /* pink */
+  --accent-2: #f97316;   /* orange */
+  --accent-3: #f59e0b;   /* amber */
 }
 
 @theme inline {
@@ -34,35 +34,46 @@ body {
 
 body {
   background:
-    radial-gradient(1000px 560px at 6% -10%, rgba(99, 102, 241, 0.20), transparent 58%),
-    radial-gradient(900px 520px at 100% -4%, rgba(217, 70, 239, 0.15), transparent 55%),
-    radial-gradient(900px 600px at 50% 112%, rgba(6, 182, 212, 0.12), transparent 55%),
+    radial-gradient(1000px 560px at 4% -10%, rgba(236, 72, 153, 0.22), transparent 58%),
+    radial-gradient(900px 520px at 100% -6%, rgba(249, 115, 22, 0.18), transparent 55%),
+    radial-gradient(820px 560px at 60% 114%, rgba(245, 158, 11, 0.15), transparent 55%),
+    radial-gradient(700px 480px at -8% 70%, rgba(168, 85, 247, 0.14), transparent 55%),
     var(--background);
+  background-size: 200% 200%;
   background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  animation: warmDrift 22s ease-in-out infinite alternate;
+}
+@keyframes warmDrift {
+  from { background-position: 0% 0%; }
+  to   { background-position: 100% 100%; }
 }
 
-/* Multi-color brand wordmark + gradient marks shared across the UI */
+/* Warm multi-color brand wordmark + gradient marks shared across the UI */
 .brand-text {
-  background: linear-gradient(100deg, #818cf8 0%, #c4b5fd 30%, #f0abfc 60%, #67e8f9 100%);
+  background: linear-gradient(100deg, #f9a8d4 0%, #ec4899 30%, #fb923c 65%, #fbbf24 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 .grad-mark {
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #d946ef 100%);
+  background: linear-gradient(135deg, #ec4899 0%, #f43f5e 45%, #fb923c 100%);
 }
 .grad-btn {
-  background: linear-gradient(120deg, #6366f1 0%, #8b5cf6 45%, #d946ef 100%);
-  background-size: 160% 160%;
+  background: linear-gradient(120deg, #f97316 0%, #f43f5e 50%, #ec4899 100%);
+  background-size: 170% 170%;
   transition: background-position 0.5s ease, filter 0.18s ease;
 }
 .grad-btn:hover:not(:disabled) {
   background-position: 100% 0;
-  filter: brightness(1.06);
+  filter: brightness(1.07);
 }
+
+/* Gentle float for hero marks */
+@keyframes floatSoft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.animate-float { animation: floatSoft 4.5s ease-in-out infinite; }
 
 /* Thin, theme-matched scrollbars */
 * {
@@ -162,7 +173,7 @@ body {
   font-size: 1rem;
 }
 .markdown a {
-  color: #a5b4fc;
+  color: #f9a8d4;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
