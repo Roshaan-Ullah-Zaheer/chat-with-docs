@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0c0910;
-  --surface: #18131e;
-  --surface-2: #211a29;
-  --surface-3: #2d2336;
-  --border: #382a40;
-  --foreground: #f4ecef;
-  --muted: #ad9ba8;
+  --background: #0c0817;
+  --surface: #17121f;
+  --surface-2: #20182c;
+  --surface-3: #2c2240;
+  --border: #392c50;
+  --foreground: #f4eef6;
+  --muted: #b0a0bd;
   --accent: #ec4899;     /* pink */
-  --accent-2: #f97316;   /* orange */
-  --accent-3: #f59e0b;   /* amber */
+  --accent-2: #a855f7;   /* purple */
+  --accent-3: #38bdf8;   /* sky */
 }
 
 @theme inline {
@@ -34,10 +34,11 @@ body {
 
 body {
   background:
-    radial-gradient(1000px 560px at 4% -10%, rgba(236, 72, 153, 0.22), transparent 58%),
-    radial-gradient(900px 520px at 100% -6%, rgba(249, 115, 22, 0.18), transparent 55%),
-    radial-gradient(820px 560px at 60% 114%, rgba(245, 158, 11, 0.15), transparent 55%),
-    radial-gradient(700px 480px at -8% 70%, rgba(168, 85, 247, 0.14), transparent 55%),
+    radial-gradient(1000px 720px at 12% 6%, rgba(236, 72, 153, 0.40), transparent 58%),
+    radial-gradient(950px 700px at 90% 12%, rgba(168, 85, 247, 0.36), transparent 58%),
+    radial-gradient(920px 700px at 96% 68%, rgba(56, 189, 248, 0.30), transparent 58%),
+    radial-gradient(920px 700px at 6% 84%, rgba(251, 146, 60, 0.30), transparent 58%),
+    radial-gradient(820px 640px at 50% 48%, rgba(217, 70, 239, 0.18), transparent 62%),
     var(--background);
   background-size: 200% 200%;
   background-attachment: fixed;
@@ -53,16 +54,16 @@ body {
 
 /* Warm multi-color brand wordmark + gradient marks shared across the UI */
 .brand-text {
-  background: linear-gradient(100deg, #f9a8d4 0%, #ec4899 30%, #fb923c 65%, #fbbf24 100%);
+  background: linear-gradient(100deg, #f9a8d4 0%, #f472b6 28%, #c084fc 58%, #fb923c 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 .grad-mark {
-  background: linear-gradient(135deg, #ec4899 0%, #f43f5e 45%, #fb923c 100%);
+  background: linear-gradient(135deg, #ec4899 0%, #a855f7 50%, #fb923c 100%);
 }
 .grad-btn {
-  background: linear-gradient(120deg, #f97316 0%, #f43f5e 50%, #ec4899 100%);
+  background: linear-gradient(120deg, #f43f5e 0%, #d946ef 50%, #f97316 100%);
   background-size: 170% 170%;
   transition: background-position 0.5s ease, filter 0.18s ease;
 }
