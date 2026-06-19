@@ -36,11 +36,11 @@ DocChat is a production-style **RAG (Retrieval-Augmented Generation)** applicati
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/01-onboarding.png" alt="AI summary and tailored starter questions on upload"/><br/><sub><b>Smart onboarding</b> — an AI summary + tailored questions the moment you upload.</sub></td>
-    <td width="50%"><img src="docs/02-grounded-answer.png" alt="Grounded answer with clickable inline citations"/><br/><sub><b>Grounded answers</b> — streamed token-by-token with clickable inline citations.</sub></td>
+    <td width="50%"><img src="docs/01-home.png" alt="Clean DocChat workspace ready for a document"/><br/><sub><b>Clean workspace</b> — drop in a PDF, Word, or text file and start asking.</sub></td>
+    <td width="50%"><img src="docs/02-onboarding.png" alt="AI summary and tailored starter questions on upload"/><br/><sub><b>Smart onboarding</b> — an AI summary + tailored starter questions the moment you upload.</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/03-sources-followups.png" alt="Sources showing document and page, plus suggested follow-ups"/><br/><sub><b>Sources &amp; follow-ups</b> — each answer shows its source document + page and suggests next questions.</sub></td>
+    <td width="50%"><img src="docs/03-grounded-answer.png" alt="Grounded answer with inline citations, sources and follow-ups"/><br/><sub><b>Grounded answers</b> — clickable inline citations, each source's document + page, and suggested follow-ups.</sub></td>
     <td width="50%"><img src="docs/04-pdf-highlight.png" alt="PDF opened to the exact page with the passage highlighted"/><br/><sub><b>PDF source highlighting</b> — click a citation to open the exact page with the passage highlighted.</sub></td>
   </tr>
 </table>
